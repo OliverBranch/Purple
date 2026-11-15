@@ -39,6 +39,32 @@ const ICONES: Record<string, string[]> = {
     '...kyyyyk...', '....kYYk....', '....kssk....', '....kSSk....', '.....kk.....', '............'],
 };
 
+const ICONES_ACAO: Record<string, string[]> = {
+  fala: ['............', '.kkkkkkkkkk.', 'kwwwwwwwwwwk', 'kwkkwkkkwwwk', 'kwwwwwwwwwwk', 'kwkkkkwkkwwk', 'kwwwwwwwwwwk', '.kkkwwkkkkk.', '...kwk......', '...kk.......', '............', '............'],
+  lista: ['.kkkkkkkkkk.', '.kwwwwwwwwk.', '.kwgwkkkkwk.', '.kwwwwwwwwk.', '.kwgwkkkkwk.', '.kwwwwwwwwk.', '.kwrwkkkkwk.', '.kwwwwwwwwk.', '.kwgwkkkwwk.', '.kwwwwwwwwk.', '.kkkkkkkkkk.', '............'],
+  rede: ['....kkkk....', '....kbbk....', '....kkkk....', '.....kk.....', '.kkkkkkkkkk.', '.k...kk...k.', 'kkk..kk..kkk', 'kbk.kkkk.kbk', 'kkk.kbbk.kkk', '....kkkk....', '............', '............'],
+  pasta: ['............', '.kkkk.......', 'kyyyykkkkkk.', 'kyyyyyyyyyyk', 'kYYYYYYYYYYk', 'kyyyyyyyyyyk', 'kyyyyyyyyyyk', 'kyyyyyyyyyyk', 'kyyyyyyyyyyk', 'kkkkkkkkkkkk', '............', '............'],
+  disquete: ['kkkkkkkkkkk.', 'kBBkwwwwkBBk', 'kBBkwwkwkBBk', 'kBBkwwwwkBBk', 'kBBBBBBBBBBk', 'kBkkkkkkkkBk', 'kBkwwwwwwkBk', 'kBkwkkkkwkBk', 'kBkwwwwwwkBk', 'kBkwkkkwwkBk', 'kkkkkkkkkkkk', '............'],
+  escudo: ['.kkkkkkkkkk.', '.kbbbbbbbbk.', '.kbbbwwbbbk.', '.kbbbwwbbbk.', '.kbwwwwwwbk.', '.kbwwwwwwbk.', '.kbbbwwbbbk.', '..kbbwwbbk..', '..kbbbbbbk..', '...kbbbbk...', '....kbbk....', '.....kk.....'],
+  lupa: ['..kkkk......', '.kwwwwk.....', 'kwbbbbwk....', 'kwbwbbwk....', 'kwbbbbwk....', 'kwbbbbwk....', '.kwwwwk.....', '..kkkkkk....', '......kNk...', '.......kNk..', '........kNk.', '.........kk.'],
+  onda: ['............', '............', '..k.........', '.kgk....k...', '.kgk...kgk..', 'kgggk..kgk..', 'kg.gk.kg.gk.', 'k...kkg...gk', '.....kk....k', '............', '............', '............'],
+  radar: ['...kkkkkk...', '..kGGGGGGk..', '.kGGgGGgGGk.', 'kGgGGGGGGgGk', 'kGGGGgGGGGGk', 'kGGGGkgGGGGk', 'kGGGGGGkGGGk', 'kGgGGGGGGgGk', '.kGGgGGgGGk.', '..kGGGGGGk..', '...kkkkkk...', '............'],
+  cabo: ['....kkkk....', '...kssssk...', '...kSssSk...', '...kssssk...', '...kkkkkk...', '....kSSk....', '....kSSk....', '....kSSk....', '....kssk....', '.....kk.....', '.....kk.....', '......k.....'],
+  energia: ['.....kk.....', '..k..rr..k..', '.kr..rr..rk.', 'kr...rr...rk', 'kr...rr...rk', 'kr...kk...rk', 'kr........rk', '.kr......rk.', '..krrrrrrk..', '...kkkkkk...', '............', '............'],
+  chave: ['............', '.kkkk.......', 'kyyyyk......', 'kykkykkkkkkk', 'kyyyyyyyyyyk', 'kykkykkkykyk', 'kyyyyk...kkk', '.kkkk.......', '............', '............', '............', '............'],
+  doc: ['.kkkkkkk....', '.kwwwwwkk...', '.kwbwbwkwk..', '.kwwwwwkkkk.', '.kwkkkkkwwk.', '.kwwwwwwwwk.', '.kwkkkkkwwk.', '.kwwwwwwwwk.', '.kwkkkkwwwk.', '.kwwwwwwwwk.', '.kkkkkkkkkk.', '............'],
+  remendo: ['............', '......kkk...', '.....kcccc..', '....kcckcck.', '...kccccckk.', '..kcckcckk..', '.kcckcckk...', '.kcccckk....', '..kcckk.....', '...kkk......', '............', '............'],
+  fita: ['............', 'kkkkkkkkkkkk', 'kSSSSSSSSSSk', 'kSkkkSSkkkSk', 'kSkwkSSkwkSk', 'kSkkkSSkkkSk', 'kSSSSSSSSSSk', 'kSSyyyyyySSk', 'kSSSSSSSSSSk', 'kkkkkkkkkkkk', '............', '............'],
+  x: ['............', '.kk......kk.', 'krrk....krrk', '.krrk..krrk.', '..krrkkrrk..', '...krrrrk...', '...krrrrk...', '..krrkkrrk..', '.krrk..krrk.', 'krrk....krrk', '.kk......kk.', '............'],
+  pessoa: ['....kkkk....', '...kcccck...', '...kcccck...', '...kcccck...', '....kkkk....', '..kkPPPPkk..', '.kPPPPPPPPk.', '.kPPPPPPPPk.', '.kPPPPPPPPk.', '.kPPPPPPPPk.', '.kkkkkkkkkk.', '............'],
+  cadeado: ['....kkkk....', '...kssssk...', '..ks....sk..', '..ks....sk..', '.kkkkkkkkkk.', '.kyyyyyyyyk.', '.kyyykkyyyk.', '.kyyykkyyyk.', '.kyyyykyyyk.', '.kyyyyyyyyk.', '.kkkkkkkkkk.', '............'],
+  hub: ['............', '............', 'kkkkkkkkkkkk', 'ksssssssssSk', 'kSyyySyyySSk', 'kSkkkkkkkkSk', 'kSSSSSSSSSSk', 'kkkkkkkkkkkk', '.k.k.k.k.k..', '.k.k.k.k.k..', '............', '............'],
+  switch: ['............', '............', 'kkkkkkkkkkkk', 'kbbbbbbbbbBk', 'kBgBgBgBgBBk', 'kBkkkkkkkkBk', 'kBBBBBBBBBBk', 'kkkkkkkkkkkk', '.k.k.k.k.k..', '.k.k.k.k.k..', '............', '............'],
+  roteador: ['..k......k..', '..k......k..', '..k......k..', 'kkkkkkkkkkkk', 'kSSSSSSSSSSk', 'kSgSSSSSSrSk', 'kSkkSkkSkkSk', 'kSSSSSSSSSSk', 'kkkkkkkkkkkk', '............', '............', '............'],
+  repetidor: ['............', '............', '...kkkkkk...', '...knnnnk...', 'kkkkngnnkkkk', '...kNNNNk...', '...kkkkkk...', '............', '............', '............', '............', '............'],
+  bridge: ['............', '............', '..kkkkkkkk..', '..kggggggk..', 'kkkgGgGggkkk', '..kGGGGGGk..', '..kkkkkkkk..', '............', '............', '............', '............', '............'],
+};
+
 export function injetarIcones(): void {
   const regras: string[] = [];
   for (const [nome, linhas] of Object.entries(ICONES)) {
@@ -52,6 +78,15 @@ export function injetarIcones(): void {
       }
     }));
     regras.push(`.ico-${nome}{background-image:url(${cv.toDataURL()})}`);
+  }
+  for (const [nome, linhas] of Object.entries(ICONES_ACAO)) {
+    const cv = novaTela(12, 12);
+    const c = ctx2d(cv);
+    linhas.forEach((l, y) => [...l].forEach((ch, x) => {
+      const cor = PAL[ch];
+      if (cor) { c.fillStyle = cor; c.fillRect(x, y, 1, 1); }
+    }));
+    regras.push(`.ic-${nome}{background-image:url(${cv.toDataURL()})}`);
   }
   const st = document.createElement('style');
   st.textContent = regras.join('\n');

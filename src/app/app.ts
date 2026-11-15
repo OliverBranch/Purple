@@ -26,7 +26,7 @@ import { Aparencia } from './core/tipos';
             @if (jogo.temSave()) { <button class="botao primario" (click)="continuar()">Continuar</button> }
             <button class="botao" [class.primario]="!jogo.temSave()" (click)="novo()">Nova empresa</button>
           </div>
-          <small class="rodape-titulo">Conteúdo: Analista de TI · Segurança da Informação · Ato 1 de 5</small>
+          <small class="rodape-titulo">Versão 0.2 · Conteúdo: Analista de TI · Segurança da Informação · Ato 1 de 5</small>
         </div>
       }
       @case ('criar') { <app-criacao /> }

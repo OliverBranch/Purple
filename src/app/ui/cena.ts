@@ -186,7 +186,7 @@ export class CenaComponent implements OnDestroy {
     const e = this.jogo.estado;
     if (!e) return;
     const c = ctx2d(this.tela().nativeElement);
-    const opts = { compras: e.compras, marca: this.marca, empresa: e.empresa };
+    const opts = { compras: e.compras, marca: this.marca, empresa: e.empresa, toca: !e.caso && e.mural.some((k) => k.emergencia), recado: !e.caso && e.mural.length > 0 };
     const chave = `${e.compras.join(',')}|${this.marca}|${e.empresa}`;
     if (chave !== this.chaveFundo) {
       this.chaveFundo = chave;

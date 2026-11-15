@@ -8,7 +8,7 @@ import { noPorId } from '../conteudo/arvore';
 import { CenaComponent } from './cena';
 import { DesafioComponent } from './desafio';
 import { RetratoComponent } from './retrato';
-import { CUSTO_MENSAL, META_CAIXA, META_CASOS, dataDe, podeFazerSimulado } from '../core/sim';
+import { CUSTO_MENSAL, META_CAIXA, META_CASOS, dataDe, podeFazerSimulado, capCarteira } from '../core/sim';
 import { LOJA, MESES, itemPorId, itensDoTopico } from '../conteudo/mundo';
 import { AVALIADORES, CRITERIOS, SERVICOS, servicoPorId } from '../conteudo/servicos';
 import { TOPICOS, topicoPorId } from '../conteudo/topicos';
@@ -92,7 +92,7 @@ import { Avaliacao, Contrato, Item } from '../core/tipos';
                     <p>{{ k.briefing }}</p>
                     <div class="temas">@for (t of servico(k.servico).topicos; track t) { <span class="tema" [attr.data-faixa]="jogo.maestria(t).faixa">{{ topicoCurto(t) }}</span> }</div>
                     <footer>
-                      <div><b class="valor">R$ {{ k.valor | number: '1.0-0' }}</b><small>visita de {{ k.prazo }} h · some em {{ k.expira - e.semana }} sem</small></div>
+                      <div><b class="valor">R$ {{ k.valor | number: '1.0-0' }}</b><small>{{ k.suporte ? 'cliente do suporte · ' : '' }}visita de {{ k.prazo }} h · some em {{ k.expira - e.semana }} sem</small></div>
                       <div class="acoes"><button class="botao pequeno" (click)="jogo.recusar(k.id)">Recusar</button><button class="botao primario" [disabled]="!!e.caso" (click)="jogo.aceitar(k.id)">Aceitar</button></div>
                     </footer>
                   </article>
@@ -164,6 +164,12 @@ import { Avaliacao, Contrato, Item } from '../core/tipos';
                   <div class="meta-linha"><span>Simulado de fundamentos</span><b>{{ e.ato1Completo ? 'Aprovado' : 'Pendente' }}</b></div>
                   <button class="botao primario" [disabled]="!podeSimulado()" (click)="jogo.iniciarSimulado()">{{ e.ato1Completo ? 'Ato 1 concluído' : 'Fazer o simulado' }}</button>
                 </div>
+                <div class="carteira">
+                  <h3>Carteira de suporte mensal ({{ e.carteira.length }}/{{ capCarteira() }})</h3>
+                  @for (k of e.carteira; track k.cliente.nome) {
+                    <div class="cliente-sup"><b>{{ k.cliente.nome }}</b><span>R$ {{ k.mensal | number: '1.0-0' }}/mês</span></div>
+                  } @empty { <p class="nota">Atendimentos de 4 estrelas ou mais rendem propostas de suporte mensal. Dinheiro todo mês, mas quando eles ligam com emergência você tem duas semanas para aparecer.</p> }
+                </div>
                 <div class="prontidao">
                   <h3>Painel de prontidão</h3>
                   <div class="numeros">
@@ -214,6 +220,11 @@ import { Avaliacao, Contrato, Item } from '../core/tipos';
         <div class="janela avaliacao">
           <span class="etiqueta">Atendimento concluído</span>
           <h2>{{ av.servico }}</h2><small>{{ av.cliente }}</small>
+          <div class="estrelas-av">
+            @for (k of [1, 2, 3, 4, 5]; track k) {
+              <span class="estrela" [class.cheia]="revelado() >= 5 && av.estrelas >= k" [class.meia]="revelado() >= 5 && av.estrelas >= k - 0.5 && av.estrelas < k" [style.animation-delay.ms]="k * 120">★</span>
+            }
+          </div>
           <div class="notas">
             @for (n of av.notas; track $index) {
               <div class="nota-cliente" [class.visivel]="revelado() > $index" [class.alta]="n >= 8" [class.baixa]="n < 5">
@@ -224,15 +235,21 @@ import { Avaliacao, Contrato, Item } from '../core/tipos';
           </div>
           @if (revelado() >= 4) {
             <div class="resumo-av">
-              <div><small>Qualidade</small><b>{{ av.qualidade }}</b></div>
-              <div><small>Horas</small><b>{{ av.horas | number: '1.1-1' }}/{{ av.prazo }}</b></div>
               <div><small>Pagamento</small><b>R$ {{ av.pagamento | number: '1.0-0' }}</b></div>
+              <div><small>Horas</small><b>{{ av.horas | number: '1.1-1' }}/{{ av.prazo }}</b></div>
               <div><small>Reputação</small><b>{{ av.rep >= 0 ? '+' : '' }}{{ av.rep }}</b></div>
+              <div><small>Qualidade</small><b>{{ av.qualidade }}</b></div>
             </div>
             <div class="eixos">
               @for (x of eixos(av); track x.nome) { <div class="eixo"><span>{{ x.nome }}</span><div class="medidor"><div [style.width.%]="x.v * 100"></div></div><b>{{ x.v * 100 | number: '1.0-0' }}%</b></div> }
             </div>
-            @if (av.dicas.length) { <ul class="dicas">@for (d of av.dicas; track $index) { <li>{{ d }}</li> }</ul> }
+            @if (av.retorno) { <p class="aviso-retorno">O problema não foi resolvido de vez. Esse cliente vai ligar de volta, e reclamando.</p> }
+            @if (av.oferta; as o) {
+              <div class="oferta">
+                <div><b>{{ o.cliente.contato }} gostou do serviço.</b><p>Proposta de suporte mensal: R$ {{ o.mensal | number: '1.0-0' }} por mês. Quando der problema lá, eles ligam primeiro para você, e esperam que você apareça.</p></div>
+                <button class="botao primario" (click)="jogo.aceitarSuporte()">Fechar contrato</button>
+              </div>
+            }
             <button class="botao primario" (click)="jogo.fecharAvaliacao()">Fechar relatório</button>
           }
         </div>
@@ -325,11 +342,12 @@ export class JogoTelaComponent {
         this.ultimaAv = av;
         if (!av) return;
         this.revelado.set(0);
-        for (let i = 1; i <= 4; i++) setTimeout(() => {
+        for (let i = 1; i <= 5; i++) setTimeout(() => {
           this.revelado.set(i);
-          this.jogo.som.clique();
+          if (i < 5) this.jogo.som.clique();
           if (i === 4) this.jogo.som.moeda();
-        }, 650 * i);
+          if (i === 5) (av.estrelas >= 4 ? this.jogo.som.fanfarra() : this.jogo.som.momento());
+        }, 550 * i);
       }
     });
     effect(() => {
@@ -349,9 +367,10 @@ export class JogoTelaComponent {
     return n[id] ?? id;
   }
   ceil(v: number): number { return Math.ceil(v); }
-  eixos(av: Avaliacao) { return [{ nome: 'Correção técnica', v: av.eixos.correcao }, { nome: 'Causa raiz e evidências', v: av.eixos.raiz }, { nome: 'Laudo', v: av.eixos.laudo }, { nome: 'Eficiência', v: av.eixos.eficiencia }]; }
+  eixos(av: Avaliacao) { return [{ nome: 'Problema resolvido', v: av.eixos.resolucao }, { nome: 'Estrago evitado', v: av.eixos.danos }, { nome: 'Laudo', v: av.eixos.laudo }, { nome: 'Tempo', v: av.eixos.tempo }]; }
   min(a: number, b: number): number { return Math.min(a, b); }
   nomeNo(id: string): string { return noPorId(id)?.nome ?? id; }
+  capCarteira(): number { return this.jogo.estado ? capCarteira(this.jogo.estado) : 2; }
   podeSimulado(): boolean { return !!this.jogo.estado && podeFazerSimulado(this.jogo.estado); }
 
   resposta(it: Item): string {

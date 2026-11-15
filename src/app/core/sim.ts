@@ -1,7 +1,7 @@
 // Núcleo de simulação: relógio, mural, economia, árvore e fechamento dos atendimentos. TypeScript puro.
-import { Aparencia, Avaliacao, Contrato, EstadoJogo, EventoSim, GatoDef, Noticia, ServicoModelo } from './tipos';
-import type { CasoPratico } from './caso';
-import { avaliar } from './caso';
+import { Aparencia, Avaliacao, Cliente, Contrato, EstadoJogo, EventoSim, GatoDef, Noticia, ServicoModelo } from './tipos';
+import type { Incidente, Regras } from './incidente';
+import { resultado } from './incidente';
 import { Rng, clamp, escolher } from './rng';
 import type { Efeito, No } from '../conteudo/arvore';
 
@@ -30,7 +30,8 @@ export interface Mundo {
   comentarios: { alto: string[]; medio: string[]; baixo: string[] }[];
   origens: { horas: number; ferramentas: number; laudo: number; insight: number; pagamento: number }[];
   nos: No[];
-  geradores: { [servico: string]: (ctx: { rng: Rng; ano: number; dif: 1 | 2 | 3; cliente: { nome: string; setor: string; contato: string } }) => CasoPratico };
+  geradores: { [servico: string]: (ctx: { rng: Rng; ano: number; dif: 1 | 2 | 3; cliente: { nome: string; setor: string; contato: string } }) => Incidente };
+  regras: { [servico: string]: Regras };
 }
 
 export interface Setup {
@@ -48,7 +49,7 @@ export function novoJogo(su: Setup): EstadoJogo {
     dinheiro: 1500, reputacao: 0, insight: 0,
     semana: 0, fracSemana: 0, proxId: 1,
     mural: [], caso: null, avaliacao: null,
-    concluidos: 0, melhorNota: 0, compras: [], servicosAbertos: [...SERVICOS_INICIAIS], arvore: ['garagem'], pesquisa: null, reestudo: {}, pago: [], retornos: [], descobertas: {},
+    concluidos: 0, melhorNota: 0, compras: [], servicosAbertos: [...SERVICOS_INICIAIS], arvore: ['garagem'], pesquisa: null, reestudo: {}, pago: [], retornos: [], carteira: [], recorde: 0,
     noticiasVistas: 0, noticia: null,
     emprestimo: false, falido: false, ato1Completo: false, tutorial: 0,
   };
@@ -98,24 +99,27 @@ export function servicosDisponiveis(s: EstadoJogo, w: Mundo): string[] {
   return [...abertos];
 }
 
-export function gerarContrato(s: EstadoJogo, w: Mundo, rng: Rng, boost?: string): Contrato {
+export const capCarteira = (s: EstadoJogo): number => 2 + Math.floor((s.arvore ?? []).length / 8);
+
+export function gerarContrato(s: EstadoJogo, w: Mundo, rng: Rng, boost?: string, deSuporte?: Cliente): Contrato {
   const ano = dataDe(s.semana).ano;
   const abertos = servicosDisponiveis(s, w);
   const disp = w.servicos.filter((x) => x.desdeAno <= ano && abertos.includes(x.id) && w.geradores[x.id]);
   const saco: ServicoModelo[] = [];
   for (const x of disp) for (let i = 0; i < (x.id === boost ? 3 : 1); i++) saco.push(x);
-  const sv = escolher(rng, saco);
-  const usados = new Set(s.mural.map((c) => c.cliente.nome));
+  // cliente de suporte liga com problema: quase sempre vírus ou servidor
+  const sv = deSuporte ? (disp.find((x) => x.id === (rng() < 0.65 ? 'virus' : 'servidor')) ?? escolher(rng, disp)) : escolher(rng, saco);
+  const usados = new Set([...s.mural.map((c) => c.cliente.nome), ...(s.carteira ?? []).map((c) => c.cliente.nome)]);
   const livres = w.clientes.filter((c) => !usados.has(c.nome));
-  const cliente = escolher(rng, livres.length ? livres : w.clientes);
+  const cliente = deSuporte ?? escolher(rng, livres.length ? livres : w.clientes);
   const r = rng();
-  const dif: 1 | 2 | 3 = s.reputacao < 10 ? 1 : s.reputacao < 30 ? (r < 0.6 ? 1 : 2) : r < 0.3 ? 1 : r < 0.7 ? 2 : 3;
-  const emergencia = s.concluidos >= 2 && sv.id === 'virus' && rng() < 0.3;
-  const baseV = [450, 1100, 2100][dif - 1] as number;
-  const valor = Math.round((baseV * (0.85 + rng() * 0.35) * (1 + s.reputacao / 150) * (emergencia ? 1.6 * mods(s, w).emergencia : 1)) / 10) * 10;
+  const dif: 1 | 2 | 3 = s.reputacao < 12 ? 1 : s.reputacao < 35 ? (r < 0.55 ? 1 : 2) : r < 0.25 ? 1 : r < 0.65 ? 2 : 3;
+  const emergencia = !!deSuporte || (s.concluidos >= 2 && sv.id === 'virus' && rng() < 0.3);
+  const baseV = [520, 1150, 2200][dif - 1] as number;
+  const valor = Math.round((baseV * (0.85 + rng() * 0.35) * (1 + s.reputacao / 150) * (emergencia ? 1.4 * mods(s, w).emergencia : 1) * (deSuporte ? 0.6 : 1)) / 10) * 10;
   const caso = w.geradores[sv.id]!({ rng, ano, dif, cliente });
-  if (emergencia) caso.horasPrazo = Math.max(5, caso.horasPrazo - 2);
-  return { id: s.proxId++, cliente, servico: sv.id, briefing: caso.chamado, valor, dif, prazo: caso.horasPrazo, expira: s.semana + (emergencia ? 3 : 5 + Math.floor(rng() * 5)), emergencia, caso };
+  if (emergencia) caso.limite = Math.max(4, caso.limite - 1);
+  return { id: s.proxId++, cliente, servico: sv.id, briefing: caso.chamado, valor, dif, prazo: caso.limite, expira: s.semana + (deSuporte ? 2 : emergencia ? 3 : 5 + Math.floor(rng() * 5)), emergencia, caso, ...(deSuporte ? { suporte: true } : {}) };
 }
 
 export function aceitar(s: EstadoJogo, id: number): boolean {
@@ -163,7 +167,19 @@ function viradaDeSemana(s: EstadoJogo, w: Mundo, rng: Rng, m: Mods, ev: EventoSi
     ev.push({ tipo: 'retorno', texto: `${r.cliente} ligou: o problema voltou. A causa raiz não foi tratada. Reputação −3.` });
   }
   s.retornos = s.retornos.filter((x) => x.semana > s.semana);
+  for (const c of s.mural.filter((x) => x.expira <= s.semana && x.suporte)) {
+    s.carteira = (s.carteira ?? []).filter((k) => k.cliente.nome !== c.cliente.nome);
+    s.reputacao = clamp(s.reputacao - 4, 0, 100);
+    ev.push({ tipo: 'perdeuSuporte', texto: `${c.cliente.nome} cancelou o suporte mensal: ligou com urgência e ninguém apareceu. Reputação −4.` });
+  }
   s.mural = s.mural.filter((c) => c.expira > s.semana);
+  for (const k of s.carteira ?? []) {
+    if (s.mural.some((c) => c.cliente.nome === k.cliente.nome) || s.caso?.contrato.cliente.nome === k.cliente.nome) continue;
+    if (rng() < 0.07) {
+      s.mural.push(gerarContrato(s, w, rng, undefined, k.cliente));
+      ev.push({ tipo: 'suporte', texto: `${k.cliente.nome} ligou: emergência no cliente de suporte! Atenda em até 2 semanas.` });
+    }
+  }
   const ultima = w.noticias[s.noticiasVistas - 1];
   const boost = ultima && (d.ano - ultima.ano) * 12 + (d.mes - ultima.mes) <= 3 ? ultima.servico : undefined;
   const vazio = s.mural.length === 0 && !s.caso;
@@ -173,6 +189,7 @@ function viradaDeSemana(s: EstadoJogo, w: Mundo, rng: Rng, m: Mods, ev: EventoSi
   }
   if (s.semana % 4 === 0) {
     s.dinheiro -= CUSTO_MENSAL;
+    s.dinheiro += (s.carteira ?? []).reduce((t, k) => t + k.mensal, 0);
     ev.push({ tipo: 'mes' });
     if (s.dinheiro < 0) {
       if (!s.emprestimo) {
@@ -187,48 +204,55 @@ function viradaDeSemana(s: EstadoJogo, w: Mundo, rng: Rng, m: Mods, ev: EventoSi
   }
 }
 
-/** Fecha o atendimento: nota, pagamento, reputação e risco de o cliente ligar de volta. */
+/** Fecha o atendimento: nota, pagamento, reputação, chance de suporte mensal e de o cliente ligar de volta. */
 export function concluirCaso(s: EstadoJogo, w: Mundo, rng: Rng): Avaliacao | null {
   const c = s.caso;
-  if (!c || c.contrato.caso.fase !== 'fim') return null;
-  const p = c.contrato.caso;
+  const inc = c?.contrato.caso;
+  if (!c || !inc || !inc.fim) return null;
+  const regras = w.regras[inc.modo];
+  if (!regras) return null;
   const m = mods(s, w);
-  const r = avaliar(p, rng, m.retorno);
+  const r = resultado(inc, regras);
   const laudo = Math.min(1, r.laudo * m.laudo);
-  const qualidade = Math.round(Math.min(100, r.qualidade + (laudo - r.laudo) * 20));
-  const vies = [
-    10 * (0.6 * r.correcao + 0.4 * r.raiz),
-    10 * r.correcao,
-    10 * r.eficiencia,
-    10 * (0.5 * laudo + 0.5 * r.raiz),
-  ];
+  const qualidade = Math.round(100 * Math.min(1, r.nota + (laudo - r.laudo) * 0.2));
+  const vies = [10 * r.resolucao, 10 * (0.5 * laudo + 0.5 * r.resolucao), 10 * (0.6 * r.tempo + 0.4 * (inc.custos <= (inc.d['verba'] ?? Infinity) ? 1 : 0.5)), 10 * (0.5 * r.danos + 0.5 * (inc.paciencia / 100))];
   const notas = vies.map((v) => Math.round(clamp(v + (rng() - 0.5) * 1.2, 1, 10)));
   const comentarios = notas.map((nota, i) => {
     const banco = w.comentarios[i] ?? { alto: [''], medio: [''], baixo: [''] };
     return escolher(rng, nota >= 8 ? banco.alto : nota >= 5 ? banco.medio : banco.baixo);
   });
-  const dicas: string[] = [];
-  const faltou = p.evidencias.filter((e) => !p.achadas.includes(e.id));
-  if (faltou.length) dicas.push(`Evidências que passaram batido: ${faltou.map((e) => e.nome).join('; ')}.`);
-  if (p.falsas > 0) dicas.push(`${p.falsas} ${p.falsas === 1 ? 'linha inocente marcada' : 'linhas inocentes marcadas'} como suspeita.`);
-  if (p.horas > p.horasPrazo) dicas.push(`A visita levou ${p.horas.toFixed(1)} h; o combinado eram ${p.horasPrazo} h.`);
-  if (!p.verificacao.feita) dicas.push(r.retorno ? 'Sem verificação final: o cliente vai ligar de volta.' : 'Você pulou a verificação final. Desta vez deu sorte.');
   const media = notas.reduce((a, b) => a + b, 0) / notas.length;
-  const pagamento = Math.round((c.contrato.valor * (0.5 + 0.5 * (qualidade / 100)) * m.pagamento) / 10) * 10;
+  const verba = (inc.d['verba'] as number | undefined) ?? 0;
+  const bruto = Math.round((c.contrato.valor * (0.4 + 0.6 * (qualidade / 100)) * m.pagamento) / 10) * 10;
+  const pagamento = bruto + verba - inc.custos;
   const rep = Math.round((media - 5.5) * 1.8);
   s.dinheiro += pagamento;
   s.reputacao = clamp(s.reputacao + rep, 0, 100);
   s.concluidos++;
   s.melhorNota = Math.max(s.melhorNota, media);
-  if (r.retorno) s.retornos.push({ semana: s.semana + 2 + Math.floor(rng() * 3), cliente: c.contrato.cliente.nome, servico: c.contrato.servico });
+  s.recorde = Math.max(s.recorde ?? 0, r.estrelas);
+  const retorno = r.retorno && rng() < 0.85 * m.retorno;
+  if (retorno) s.retornos.push({ semana: s.semana + 2 + Math.floor(rng() * 3), cliente: c.contrato.cliente.nome, servico: c.contrato.servico });
   const nome = w.servicos.find((x) => x.id === c.contrato.servico)?.nome ?? '';
+  const naCarteira = (s.carteira ?? []).some((k) => k.cliente.nome === c.contrato.cliente.nome);
+  const oferta = !naCarteira && r.estrelas >= 4 && (s.carteira ?? []).length < capCarteira(s)
+    ? { cliente: c.contrato.cliente, mensal: Math.round((c.contrato.valor * 0.22 * (1 + c.contrato.dif * 0.15)) / 10) * 10 }
+    : undefined;
   const av: Avaliacao = {
-    cliente: c.contrato.cliente.nome, servico: nome, qualidade, notas, comentarios, pagamento, rep,
-    eixos: { correcao: r.correcao, laudo, raiz: r.raiz, eficiencia: r.eficiencia }, horas: p.horas, prazo: p.horasPrazo, dicas, verificou: !!p.verificacao.feita,
+    cliente: c.contrato.cliente.nome, servico: nome, qualidade, estrelas: r.estrelas, notas, comentarios, pagamento, custos: inc.custos, rep,
+    eixos: { resolucao: r.resolucao, danos: r.danos, laudo, tempo: r.tempo }, horas: inc.hora, prazo: inc.limite, licoes: inc.licoes, retorno,
+    ...(oferta ? { oferta } : {}),
   };
   s.avaliacao = av;
   s.caso = null;
   return av;
+}
+
+export function aceitarSuporte(s: EstadoJogo): void {
+  const o = s.avaliacao?.oferta;
+  if (!o) return;
+  s.carteira = [...(s.carteira ?? []), { cliente: o.cliente, mensal: o.mensal, desde: s.semana }];
+  delete s.avaliacao!.oferta;
 }
 
 /** Semanas de jogo que um atendimento consome. */

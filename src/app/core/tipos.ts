@@ -1,4 +1,4 @@
-import type { CasoPratico } from './caso';
+import type { Incidente, Licao } from './incidente';
 // Tipos compartilhados do núcleo. Nada aqui depende de Angular.
 
 export type Formato = 'mcq' | 'ce' | 'ordem' | 'erro';
@@ -102,7 +102,9 @@ export interface Contrato {
   prazo: number; // semanas para entregar depois do aceite
   expira: number; // semana em que sai do mural
   emergencia: boolean;
-  caso: CasoPratico;
+  caso: Incidente;
+  /** cliente da carteira de suporte mensal */
+  suporte?: boolean;
 }
 
 export interface Caso {
@@ -114,15 +116,24 @@ export interface Avaliacao {
   cliente: string;
   servico: string;
   qualidade: number;
+  estrelas: number;
   notas: number[];
   comentarios: string[];
   pagamento: number;
+  custos: number;
   rep: number;
-  eixos: { correcao: number; laudo: number; raiz: number; eficiencia: number };
+  eixos: { resolucao: number; danos: number; laudo: number; tempo: number };
   horas: number;
   prazo: number;
-  dicas: string[];
-  verificou: boolean;
+  licoes: Licao[];
+  retorno: boolean;
+  oferta?: { cliente: Cliente; mensal: number };
+}
+
+export interface ClienteSuporte {
+  cliente: Cliente;
+  mensal: number;
+  desde: number;
 }
 
 export interface Noticia {
@@ -159,7 +170,8 @@ export interface EstadoJogo {
   reestudo: { [no: string]: number };
   pago: string[];
   retornos: { semana: number; cliente: string; servico: string }[];
-  descobertas: { [chave: string]: number }; // `${servico}:${fase}:${i}` -> -1 | 0 | 1
+  carteira: ClienteSuporte[];
+  recorde: number;
   noticiasVistas: number;
   noticia: Noticia | null;
   emprestimo: boolean;
@@ -169,7 +181,7 @@ export interface EstadoJogo {
 }
 
 export interface EventoSim {
-  tipo: 'mes' | 'noticia' | 'contratoNovo' | 'riscoFix' | 'falencia' | 'emprestimo' | 'pesquisaPronta' | 'retorno';
+  tipo: 'mes' | 'noticia' | 'contratoNovo' | 'riscoFix' | 'falencia' | 'emprestimo' | 'pesquisaPronta' | 'retorno' | 'suporte' | 'perdeuSuporte';
   texto?: string;
   n?: number;
 }

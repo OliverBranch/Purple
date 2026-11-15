@@ -1,7 +1,7 @@
 import { Cliente, ServicoModelo } from '../core/tipos';
 
 // Serviços pontuais do Ato 1. {c} = cliente, {p} = pessoa de contato.
-// Serviços do Ato 1. Cada um tem um gerador de atendimento em conteudo/casos.
+// Serviços do Ato 1. Cada um vira um incidente em tempo real (conteudo/incidentes).
 export const SERVICOS: ServicoModelo[] = [
   { id: 'rede', nome: 'Montagem de rede local', desc: 'Projetar e instalar a rede com os equipamentos certos.', topicos: ['equip', 'osi', 'ipv4'], desdeAno: 1995 },
   { id: 'virus', nome: 'Limpeza de vírus', desc: 'Investigar, identificar e remover a praga, e achar por onde ela entrou.', topicos: ['malware', 'cia'], desdeAno: 1995 },
@@ -34,7 +34,7 @@ export const CLIENTES: Cliente[] = [
 
 // Quem avalia o serviço num cliente pequeno.
 export const AVALIADORES = ['O dono', 'O sobrinho que entende de computador', 'A contadora', 'O funcionário mais antigo'];
-export const CRITERIOS = ['Resolveu e achou a causa', 'Correção técnica', 'Horas cobradas', 'Laudo e causa raiz'];
+export const CRITERIOS = ['Resolveu o problema', 'Explicou direito', 'Horas e custo', 'Estrago e paciência'];
 
 export const COMENTARIOS: { alto: string[]; medio: string[]; baixo: string[] }[] = [
   { // dono

@@ -8,7 +8,18 @@ export interface CenaOpts {
   compras: string[];
   marca: string;
   empresa: string;
+  /** telefone tocando (emergência no mural) */
+  toca?: boolean;
+  /** recado na secretária eletrônica (contrato novo no mural) */
+  recado?: boolean;
 }
+
+/** Conceitos que aparecem no quadro branco, um de cada vez (fonte 3x5: sem barra nem igual). */
+const QUADRO: [string, string][] = [
+  ['TRIADE', 'C  I  D'], ['OSI', '7 CAMADAS'], ['SSH', 'PORTA 22'], ['DNS', 'PORTA 53'], ['MASCARA 26', '62 HOSTS'],
+  ['APIPA', '169.254'], ['HUB: L1', 'SWITCH: L2'], ['WORM', 'SEM HOSPED.'], ['BACKUP', 'OFFLINE!'], ['RISCO', 'AMEACA X VUL'],
+  ['TELNET 23', 'TEXTO CLARO'], ['RFC 1918', '10 172 192'], ['ROTEADOR', 'SEM BROADCAST'], ['HTTPS', 'PORTA 443'],
+];
 
 const h2 = (x: number, y: number): number => {
   let n = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263);
@@ -272,6 +283,51 @@ export function desenharFundo(c: Ctx, o: CenaOpts): void {
   texto(c, 'FRAGIL', 449, 114, '#5c3b27');
   p(450, 82, 30, 18, '#a57d4e'); p(450, 82, 30, 2, '#c9a474'); p(456, 70, 18, 12, '#b08a5a'); p(456, 70, 18, 2, '#c9a474');
   c.fillStyle = 'rgba(24,16,40,0.22)'; c.fillRect(444, 132, 36, 3);
+  detalhesChao(c);
+}
+
+/** Vida no chão da garagem: sombra junto à parede, extensão, pizza, quadro branco e bancada de conserto. */
+function detalhesChao(c: Ctx): void {
+  const p = (x: number, y: number, w: number, h: number, cor: string) => ret(c, x, y, w, h, cor);
+  // sombra de contato junto à parede
+  const g = c.createLinearGradient(0, 104, 0, 120);
+  g.addColorStop(0, 'rgba(20,12,36,0.35)'); g.addColorStop(1, 'rgba(20,12,36,0)');
+  c.fillStyle = g; c.fillRect(0, 104, LARG, 16);
+  // rachaduras no concreto
+  for (const [x, y, n] of [[60, 236, 9], [250, 150, 7], [420, 248, 8]] as [number, number, number][]) {
+    let cx = x, cy = y;
+    for (let i = 0; i < n; i++) { p(cx, cy, 2, 1, '#5a5466'); cx += 2; cy += h2(cx, cy) > 0.5 ? 1 : -1; }
+  }
+  // tomada na parede e extensão até a mesa
+  p(227, 95, 6, 6, '#e8e0cc'); p(229, 97, 1, 2, '#3a3348'); p(231, 97, 1, 2, '#3a3348');
+  c.fillStyle = '#2a2234';
+  for (let x = 204; x < 231; x++) c.fillRect(x, 158 + Math.round(Math.sin(x * 0.35) * 1.5), 1, 1);
+  for (let y = 101; y < 158; y += 1) c.fillRect(231 + Math.round(Math.sin(y * 0.3)), y, 1, 1);
+  p(218, 156, 10, 5, '#e8e0cc'); p(218, 156, 10, 1, '#fffaf0'); p(220, 158, 1, 1, '#c9442f'); p(223, 158, 2, 1, '#3a3348');
+  // rolo de cabo de rede
+  for (let a = 0; a < 40; a++) { const t = a / 40 * Math.PI * 2; c.fillStyle = a % 7 ? '#3b82f6' : '#2563eb'; c.fillRect(Math.round(268 + Math.cos(t) * 7), Math.round(168 + Math.sin(t) * 3), 2, 1); }
+  for (let a = 0; a < 30; a++) { const t = a / 30 * Math.PI * 2; c.fillStyle = '#2f6fb0'; c.fillRect(Math.round(268 + Math.cos(t) * 4), Math.round(168 + Math.sin(t) * 2), 1, 1); }
+  // caixas de pizza perto do sofá
+  for (let i = 0; i < 3; i++) { p(14 + i, 158 - i * 3, 22, 3, i === 2 ? '#d8c08a' : '#c9a86a'); p(14 + i, 158 - i * 3, 22, 1, '#e8d4a4'); }
+  texto(c, 'PIZZA', 17, 152, '#a0402a');
+  c.fillStyle = 'rgba(24,16,40,0.22)'; c.fillRect(14, 161, 24, 2);
+  // quadro branco de rodinhas
+  p(10, 176, 2, 34, '#8a8e98'); p(64, 176, 2, 34, '#8a8e98'); p(8, 210, 8, 2, '#3a3348'); p(60, 210, 8, 2, '#3a3348');
+  p(8, 168, 60, 30, '#3a3348'); p(9, 169, 58, 28, '#c9ced8'); p(10, 170, 56, 26, '#f4f6fa');
+  p(12, 197, 52, 2, '#9aa0aa'); p(20, 196, 6, 1, '#2563eb'); p(30, 196, 6, 1, '#c9442f');
+  c.fillStyle = 'rgba(24,16,40,0.22)'; c.fillRect(8, 212, 62, 2);
+  // bancada de conserto com micro de cliente aberto
+  p(196, 222, 76, 4, '#8a5c36'); p(196, 222, 76, 1, '#a8784a'); p(198, 226, 3, 22, '#6e4728'); p(267, 226, 3, 22, '#6e4728'); p(200, 240, 68, 2, '#6e4728');
+  p(204, 206, 24, 16, '#d8cdb4'); p(204, 206, 24, 1, '#ece4d0'); p(206, 208, 20, 12, '#3a3348');
+  p(208, 210, 8, 4, '#2f9c6a'); p(218, 210, 6, 2, '#e0a526'); p(208, 216, 14, 2, '#64748b'); p(210, 209, 1, 9, '#c9442f');
+  p(228, 207, 2, 15, '#b5a98c');
+  p(236, 214, 12, 3, '#2f9c6a'); p(237, 214, 1, 3, '#e0a526'); p(240, 214, 1, 3, '#e0a526'); p(243, 214, 1, 3, '#e0a526');
+  p(252, 218, 14, 2, '#c9442f'); p(264, 217, 4, 4, '#64748b');
+  p(232, 219, 3, 3, '#f1ece0');
+  texto(c, 'CONSERTO', 214, 230, '#e8dcc0');
+  c.fillStyle = 'rgba(24,16,40,0.25)'; c.fillRect(196, 248, 76, 3);
+  // telefone com secretária eletrônica em cima da caixa de cabos
+  p(271, 87, 18, 9, '#2b2b33'); p(271, 87, 18, 1, '#4a4a55'); p(273, 89, 6, 3, '#5a5a66'); p(281, 90, 6, 1, '#1a1a22');
 }
 
 export type ModoTela = 'ocioso' | 'trabalho' | 'alerta';
@@ -287,6 +343,28 @@ export function desenharDinamico(c: Ctx, o: CenaOpts, hora: number, t: number, m
   c.fillStyle = 'rgba(255,255,255,0.10)'; c.fillRect(34, 40, 2, 16); c.fillRect(38, 40, 1, 10);
   // cacto no parapeito
   p(82, 79, 8, 7, '#b8603a'); p(81, 79, 10, 2, '#cf7a4c'); p(84, 69, 4, 10, '#4f9a5a'); p(85, 69, 1, 10, '#72be78'); p(88, 73, 2, 1, '#4f9a5a'); p(89, 71, 1, 3, '#4f9a5a'); p(85, 68, 2, 1, '#f29aa8');
+  // quadro branco: um conceito por vez
+  const k = Math.floor(t / 9) % QUADRO.length;
+  const [l1, l2] = QUADRO[k] as [string, string];
+  texto(c, l1, 38 - Math.round(l1.length * 2), 175, '#2563eb');
+  texto(c, l2, 38 - Math.round(l2.length * 2), 184, '#c9442f');
+  if (Math.floor(t / 9) !== Math.floor((t - 0.25) / 9)) p(10, 170, 56, 26, '#e8ecf4');
+  // poeira dançando no feixe da janela
+  if (n < 0.8) {
+    for (let i = 0; i < 16; i++) {
+      const fy = ((h2(i, 7) * 92 + t * (2 + h2(i, 3) * 3)) % 92);
+      const y = 196 - fy;
+      const esq = 30 + (y - 104) * (48 / 92), dir = 92 + (y - 104) * (76 / 92);
+      const x = esq + (dir - esq) * ((h2(i, 11) + Math.sin(t * 0.4 + i) * 0.08 + 1) % 1);
+      c.fillStyle = `rgba(255,240,200,${(0.35 + 0.35 * Math.sin(t * 2 + i)) * (1 - n)})`;
+      c.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+  }
+  // telefone: LED de recado e toque de emergência
+  const tremeTel = o.toca ? Math.round(Math.sin(t * 60)) : 0;
+  p(273 + tremeTel, 84, 10, 3, '#3a3a44'); p(272 + tremeTel, 83, 3, 2, '#3a3a44'); p(281 + tremeTel, 83, 3, 2, '#3a3a44');
+  if (o.recado || o.toca) p(285, 89, 2, 2, Math.sin(t * 6) > 0 ? '#ef4444' : '#5a1a1a');
+  if (o.toca && Math.sin(t * 8) > -0.2) { texto(c, 'TRIM', 288, 74, '#ffffff'); p(286, 80, 1, 1, '#ffffff'); }
   // vidros do portão
   for (let i = 0; i < 4; i++) ceu(c, 318 + i * 34, 39, 26, 6, hora, t, false);
   // lâmpada fluorescente (com defeito desde 1993)
@@ -381,6 +459,12 @@ export function desenharLuz(c: Ctx, aux: Ctx, hora: number, modo: ModoTela): voi
     c.beginPath(); c.moveTo(30, 104); c.lineTo(92, 104); c.lineTo(168, 196); c.lineTo(78, 196); c.closePath(); c.fill();
     c.globalCompositeOperation = 'source-over';
   }
+  // vinheta suave
+  const v = c.createRadialGradient(LARG / 2, ALT / 2, ALT * 0.45, LARG / 2, ALT / 2, ALT * 0.95);
+  v.addColorStop(0, 'rgba(12,6,28,0)');
+  v.addColorStop(1, 'rgba(12,6,28,0.38)');
+  c.fillStyle = v;
+  c.fillRect(0, 0, LARG, ALT);
 }
 
 export function desenharAssento(c: Ctx, cadeira: boolean): void {
